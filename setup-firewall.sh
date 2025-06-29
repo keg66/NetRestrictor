@@ -11,6 +11,7 @@ echo "Setting up firewall rules..."
 echo "Allowed IP: $ALLOWED_IP"
 echo "Allowed Port: $ALLOWED_PORT"
 echo "Protocol: $PROTOCOL"
+echo "Port check: [$ALLOWED_PORT]"
 
 # Clear existing rules
 iptables -F
@@ -33,11 +34,16 @@ iptables -A OUTPUT -o lo -j ACCEPT
 iptables -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
 iptables -A OUTPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
 
-# Allow INPUT from specified IP and PORT only
-iptables -A INPUT -p $PROTOCOL -s $ALLOWED_IP --sport $ALLOWED_PORT -j ACCEPT
-
-# Allow OUTPUT to specified IP and PORT only
-iptables -A OUTPUT -p $PROTOCOL -d $ALLOWED_IP --dport $ALLOWED_PORT -j ACCEPT
+# Allow INPUT from specified IP (with optional port restriction)
+if [ "$ALLOWED_PORT" = "null" ] || [ -z "$ALLOWED_PORT" ] || [ "$ALLOWED_PORT" = "" ]; then
+    echo "Allowing all ports for IP: $ALLOWED_IP"
+    iptables -A INPUT -p $PROTOCOL -s $ALLOWED_IP -j ACCEPT
+    iptables -A OUTPUT -p $PROTOCOL -d $ALLOWED_IP -j ACCEPT
+else
+    echo "Restricting to specific port: $ALLOWED_PORT"
+    iptables -A INPUT -p $PROTOCOL -s $ALLOWED_IP --sport $ALLOWED_PORT -j ACCEPT
+    iptables -A OUTPUT -p $PROTOCOL -d $ALLOWED_IP --dport $ALLOWED_PORT -j ACCEPT
+fi
 
 # Log dropped packets if enabled
 if [ "$LOG_DROPPED" = "true" ]; then
