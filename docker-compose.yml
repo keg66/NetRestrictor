@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  netrestrictor:
+    build: .
+    container_name: netrestrictor
+    privileged: true  # Required for iptables manipulation
+    cap_add:
+      - NET_ADMIN     # Network administration capabilities
+      - SYS_ADMIN     # System administration capabilities
+    volumes:
+      - ./config.json:/app/config.json:ro  # Mount config as read-only
+      - ./logs:/var/log/netrestrictor       # Optional: Mount logs directory
+    environment:
+      - TZ=Asia/Tokyo  # Set timezone
+    networks:
+      - restricted_net
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  restricted_net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
